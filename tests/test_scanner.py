@@ -1,0 +1,80 @@
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+
+from secret_preflight.cli import main
+from secret_preflight.scanner import scan_staged
+
+
+def git(repo: Path, *args: str) -> None:
+    subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True, text=True)
+
+
+def init_repo(tmp_path: Path) -> Path:
+    git(tmp_path, "init", "-q")
+    return tmp_path
+
+
+def stage_file(repo: Path, name: str, content: str | bytes) -> None:
+    path = repo / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if isinstance(content, bytes):
+        path.write_bytes(content)
+    else:
+        path.write_text(content, encoding="utf-8")
+    git(repo, "add", name)
+
+
+def test_blocks_secret_assignment(tmp_path, monkeypatch):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "app.py", 'API_KEY = "AbCdEfGhIjKlMnOpQrStUvWxYz123456"\n')
+    monkeypatch.chdir(repo)
+
+    findings = scan_staged(repo)
+
+    assert {finding.rule for finding in findings} == {"secret-assignment"}
+    assert findings[0].location() == "app.py:1"
+
+
+def test_blocks_env_file_and_jwt(tmp_path, monkeypatch, capsys):
+    repo = init_repo(tmp_path)
+    stage_file(
+        repo,
+        ".env.local",
+        "TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signedpayload\n",
+    )
+    monkeypatch.chdir(repo)
+
+    assert main([]) == 1
+    err = capsys.readouterr().err
+    assert ".env.local env-file" in err
+    assert ".env.local:1 jwt" in err
+
+
+def test_allows_env_example_and_placeholders(tmp_path):
+    repo = init_repo(tmp_path)
+    stage_file(repo, ".env.example", "API_KEY=your_api_key_here\n")
+    stage_file(repo, "README.md", "Use TOKEN=placeholder in docs.\n")
+
+    assert scan_staged(repo) == []
+
+
+def test_flags_screenshot_like_image(tmp_path):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "docs/Screen Shot 2026-06-01.png", b"\x89PNG\r\n\x1a\n")
+
+    findings = scan_staged(repo)
+
+    assert len(findings) == 1
+    assert findings[0].rule == "screenshot"
+    assert findings[0].severity == "medium"
+
+
+def test_clean_staged_file_passes(tmp_path, monkeypatch, capsys):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "notes.txt", "hello\n")
+    monkeypatch.chdir(repo)
+
+    assert main([]) == 0
+    assert "passed" in capsys.readouterr().out
