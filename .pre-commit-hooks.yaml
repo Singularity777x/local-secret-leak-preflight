@@ -1,0 +1,7 @@
+- id: secret-preflight
+  name: Local Secret Leak Preflight
+  description: Scan staged changes for API keys, JWTs, private keys, .env mistakes, and screenshots.
+  entry: secret-preflight
+  language: python
+  pass_filenames: false
+  always_run: true
