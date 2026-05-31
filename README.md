@@ -16,7 +16,7 @@ It is intentionally small and dependency-light: install it, stage your changes, 
 ## Install
 
 ```bash
-python -m pip install local-secret-leak-preflight
+python -m pip install git+https://github.com/Singularity777x/local-secret-leak-preflight.git
 ```
 
 For local development:
