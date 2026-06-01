@@ -182,6 +182,11 @@ def staged_paths(root: Path) -> list[str]:
     return [path for path in output.split("\0") if path]
 
 
+def tracked_paths(root: Path) -> list[str]:
+    output = str(run_git(["ls-files", "-z"], root))
+    return [path for path in output.split("\0") if path]
+
+
 def staged_added_lines(root: Path, paths: Iterable[str]) -> list[AddedLine]:
     lines: list[AddedLine] = []
     for path in paths:
@@ -204,6 +209,20 @@ def staged_added_lines(root: Path, paths: Iterable[str]) -> list[AddedLine]:
                 current_line += 1
             elif not raw.startswith("-"):
                 current_line += 1
+    return lines
+
+
+def file_lines(root: Path, paths: Iterable[str]) -> list[AddedLine]:
+    lines: list[AddedLine] = []
+    for path in paths:
+        full_path = root / path
+        if not full_path.is_file():
+            continue
+        text = full_path.read_bytes().decode("utf-8", errors="replace")
+        if "\0" in text:
+            continue
+        for line_number, text_line in enumerate(text.splitlines(), start=1):
+            lines.append(AddedLine(path=path, line_number=line_number, text=text_line))
     return lines
 
 
@@ -332,4 +351,11 @@ def scan_staged(root: Path | None = None, ignore_file: str | None = DEFAULT_IGNO
     repo_root = root or git_root()
     paths = staged_paths(repo_root)
     findings = scan_paths(paths) + scan_added_lines(staged_added_lines(repo_root, paths))
+    return filter_ignored(findings, load_ignore_patterns(repo_root, ignore_file))
+
+
+def scan_all(root: Path | None = None, ignore_file: str | None = DEFAULT_IGNORE_FILE) -> list[Finding]:
+    repo_root = root or git_root()
+    paths = tracked_paths(repo_root)
+    findings = scan_paths(paths) + scan_added_lines(file_lines(repo_root, paths))
     return filter_ignored(findings, load_ignore_patterns(repo_root, ignore_file))

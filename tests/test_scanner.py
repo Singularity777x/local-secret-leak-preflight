@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 
 from secret_preflight.cli import main
-from secret_preflight.scanner import scan_staged
+from secret_preflight.scanner import scan_all, scan_staged
 
 
 def git(repo: Path, *args: str) -> None:
@@ -14,6 +14,8 @@ def git(repo: Path, *args: str) -> None:
 
 def init_repo(tmp_path: Path) -> Path:
     git(tmp_path, "init", "-q")
+    git(tmp_path, "config", "user.email", "test@example.com")
+    git(tmp_path, "config", "user.name", "Test User")
     return tmp_path
 
 
@@ -98,6 +100,30 @@ def test_clean_staged_file_passes(tmp_path, monkeypatch, capsys):
 
     assert main([]) == 0
     assert "passed" in capsys.readouterr().out
+
+
+def test_all_scan_checks_tracked_files_without_staging(tmp_path):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "app.py", "print('ok')\n")
+    git(repo, "commit", "-m", "initial")
+    (repo / "app.py").write_text('API_KEY = "AbCdEfGhIjKlMnOpQrStUvWxYz123456"\n', encoding="utf-8")
+
+    assert scan_staged(repo) == []
+    findings = scan_all(repo)
+
+    assert {finding.rule for finding in findings} == {"secret-assignment"}
+    assert findings[0].location() == "app.py:1"
+
+
+def test_cli_all_mode_checks_tracked_files(tmp_path, monkeypatch, capsys):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "app.py", "print('ok')\n")
+    git(repo, "commit", "-m", "initial")
+    (repo / "app.py").write_text('API_KEY = "AbCdEfGhIjKlMnOpQrStUvWxYz123456"\n', encoding="utf-8")
+    monkeypatch.chdir(repo)
+
+    assert main(["--all"]) == 1
+    assert "secret-assignment" in capsys.readouterr().err
 
 
 def test_quiet_clean_scan_only_returns_status(tmp_path, monkeypatch, capsys):

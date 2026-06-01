@@ -52,6 +52,12 @@ For scripts that only need an exit code:
 secret-preflight --quiet
 ```
 
+Scan every tracked file instead of only staged changes:
+
+```bash
+secret-preflight --all
+```
+
 Check the installed version:
 
 ```bash
@@ -145,7 +151,9 @@ repos:
 
 ## Design
 
-The scanner reads staged Git data, not your working tree. It checks staged paths for dangerous files and parses added lines from `git diff --cached --unified=0` for secret-like content. Existing secrets outside the staged diff are not reported unless the dangerous file path itself is staged.
+By default, the scanner reads staged Git data, not your working tree. It checks staged paths for dangerous files and parses added lines from `git diff --cached --unified=0` for secret-like content. Existing secrets outside the staged diff are not reported unless the dangerous file path itself is staged.
+
+Use `--all` for a broader audit of every tracked file in the repository.
 
 This keeps the tool fast and focused on the exact commit being prepared.
 

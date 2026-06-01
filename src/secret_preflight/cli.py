@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from secret_preflight import __version__
-from secret_preflight.scanner import Finding, git_root, scan_staged
+from secret_preflight.scanner import Finding, git_root, scan_all, scan_staged
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -26,6 +26,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--ignore-file",
         default=".secret-preflight-ignore",
         help="Repository-relative ignore file. Use an empty value to disable ignores.",
+    )
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--staged",
+        action="store_true",
+        help="Scan staged changes only. This is the default.",
+    )
+    mode.add_argument(
+        "--all",
+        action="store_true",
+        help="Scan all tracked files in the repository.",
     )
     parser.add_argument(
         "--format",
@@ -155,7 +166,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Installed pre-commit hook at {root / '.git' / 'hooks' / 'pre-commit'}")
             return 0
 
-        findings = scan_staged(root, ignore_file=args.ignore_file or None)
+        if args.all:
+            findings = scan_all(root, ignore_file=args.ignore_file or None)
+        else:
+            findings = scan_staged(root, ignore_file=args.ignore_file or None)
     except RuntimeError as exc:
         print(f"secret-preflight: {exc}", file=sys.stderr)
         return 2
