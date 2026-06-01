@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "local-secret-leak-preflight"
-version = "0.1.4"
+version = "0.1.5"
 description = "A tiny pre-commit and CLI scanner for staged secret leaks."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -41,3 +41,6 @@ Issues = "https://github.com/Singularity777x/local-secret-leak-preflight/issues"
 testpaths = ["tests"]
 addopts = "-q"
 pythonpath = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/secret_preflight"]
