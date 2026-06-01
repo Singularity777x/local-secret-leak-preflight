@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from secret_preflight import __version__
-from secret_preflight.scanner import Finding, git_root, scan_all, scan_staged
+from secret_preflight.scanner import DEFAULT_MAX_FILE_BYTES, Finding, git_root, scan_all, scan_staged
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -37,6 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--all",
         action="store_true",
         help="Scan all tracked files in the repository.",
+    )
+    parser.add_argument(
+        "--max-file-bytes",
+        type=int,
+        default=DEFAULT_MAX_FILE_BYTES,
+        help="Maximum tracked file size to read in --all mode. Use -1 for no limit.",
     )
     parser.add_argument(
         "--format",
@@ -167,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.all:
-            findings = scan_all(root, ignore_file=args.ignore_file or None)
+            findings = scan_all(root, ignore_file=args.ignore_file or None, max_file_bytes=args.max_file_bytes)
         else:
             findings = scan_staged(root, ignore_file=args.ignore_file or None)
     except RuntimeError as exc:

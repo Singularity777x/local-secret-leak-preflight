@@ -126,6 +126,26 @@ def test_cli_all_mode_checks_tracked_files(tmp_path, monkeypatch, capsys):
     assert "secret-assignment" in capsys.readouterr().err
 
 
+def test_all_scan_skips_files_above_size_limit(tmp_path):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "large.txt", 'API_KEY = "AbCdEfGhIjKlMnOpQrStUvWxYz123456"\n')
+    git(repo, "commit", "-m", "initial")
+
+    assert scan_all(repo, max_file_bytes=10) == []
+    assert {finding.rule for finding in scan_all(repo, max_file_bytes=-1)} == {"secret-assignment"}
+
+
+def test_cli_all_mode_can_override_file_size_limit(tmp_path, monkeypatch, capsys):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "large.txt", 'API_KEY = "AbCdEfGhIjKlMnOpQrStUvWxYz123456"\n')
+    git(repo, "commit", "-m", "initial")
+    monkeypatch.chdir(repo)
+
+    assert main(["--all", "--max-file-bytes", "10"]) == 0
+    assert main(["--all", "--max-file-bytes", "-1"]) == 1
+    assert "secret-assignment" in capsys.readouterr().err
+
+
 def test_quiet_clean_scan_only_returns_status(tmp_path, monkeypatch, capsys):
     repo = init_repo(tmp_path)
     stage_file(repo, "notes.txt", "hello\n")

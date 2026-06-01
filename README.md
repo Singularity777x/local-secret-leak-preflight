@@ -58,6 +58,13 @@ Scan every tracked file instead of only staged changes:
 secret-preflight --all
 ```
 
+`--all` skips tracked files larger than 1 MiB by default. Adjust or disable that limit when needed:
+
+```bash
+secret-preflight --all --max-file-bytes 5242880
+secret-preflight --all --max-file-bytes -1
+```
+
 Check the installed version:
 
 ```bash

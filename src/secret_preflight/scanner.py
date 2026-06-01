@@ -12,6 +12,7 @@ from typing import Iterable
 
 ALLOW_MARKER = "secret-preflight: allow"
 DEFAULT_IGNORE_FILE = ".secret-preflight-ignore"
+DEFAULT_MAX_FILE_BYTES = 1_048_576
 SCREENSHOT_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".tiff", ".bmp"}
 SCREENSHOT_NAME = re.compile(
     r"(screen[\s_-]?shot|screen[\s_-]?capture|screencap|clean[\s_-]?shot|capture)",
@@ -212,11 +213,13 @@ def staged_added_lines(root: Path, paths: Iterable[str]) -> list[AddedLine]:
     return lines
 
 
-def file_lines(root: Path, paths: Iterable[str]) -> list[AddedLine]:
+def file_lines(root: Path, paths: Iterable[str], max_file_bytes: int = DEFAULT_MAX_FILE_BYTES) -> list[AddedLine]:
     lines: list[AddedLine] = []
     for path in paths:
         full_path = root / path
         if not full_path.is_file():
+            continue
+        if max_file_bytes >= 0 and full_path.stat().st_size > max_file_bytes:
             continue
         text = full_path.read_bytes().decode("utf-8", errors="replace")
         if "\0" in text:
@@ -354,8 +357,12 @@ def scan_staged(root: Path | None = None, ignore_file: str | None = DEFAULT_IGNO
     return filter_ignored(findings, load_ignore_patterns(repo_root, ignore_file))
 
 
-def scan_all(root: Path | None = None, ignore_file: str | None = DEFAULT_IGNORE_FILE) -> list[Finding]:
+def scan_all(
+    root: Path | None = None,
+    ignore_file: str | None = DEFAULT_IGNORE_FILE,
+    max_file_bytes: int = DEFAULT_MAX_FILE_BYTES,
+) -> list[Finding]:
     repo_root = root or git_root()
     paths = tracked_paths(repo_root)
-    findings = scan_paths(paths) + scan_added_lines(file_lines(repo_root, paths))
+    findings = scan_paths(paths) + scan_added_lines(file_lines(repo_root, paths, max_file_bytes=max_file_bytes))
     return filter_ignored(findings, load_ignore_patterns(repo_root, ignore_file))
