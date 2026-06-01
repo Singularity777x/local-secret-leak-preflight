@@ -78,3 +78,32 @@ def test_clean_staged_file_passes(tmp_path, monkeypatch, capsys):
 
     assert main([]) == 0
     assert "passed" in capsys.readouterr().out
+
+
+def test_inline_allow_marker_suppresses_line_finding(tmp_path):
+    repo = init_repo(tmp_path)
+    stage_file(
+        repo,
+        "tests/fixtures.py",
+        'API_KEY = "AbCdEfGhIjKlMnOpQrStUvWxYz123456"  # secret-preflight: allow\n',
+    )
+
+    assert scan_staged(repo) == []
+
+
+def test_ignore_file_suppresses_matching_path_and_rule(tmp_path):
+    repo = init_repo(tmp_path)
+    stage_file(repo, ".secret-preflight-ignore", "docs/*.png:screenshot\n")
+    stage_file(repo, "docs/Screen Shot 2026-06-01.png", b"\x89PNG\r\n\x1a\n")
+
+    assert scan_staged(repo) == []
+
+
+def test_cli_can_disable_ignore_file(tmp_path, monkeypatch, capsys):
+    repo = init_repo(tmp_path)
+    stage_file(repo, ".secret-preflight-ignore", "app.py:secret-assignment\n")
+    stage_file(repo, "app.py", 'API_KEY = "AbCdEfGhIjKlMnOpQrStUvWxYz123456"\n')
+    monkeypatch.chdir(repo)
+
+    assert main(["--ignore-file", ""]) == 1
+    assert "secret-assignment" in capsys.readouterr().err

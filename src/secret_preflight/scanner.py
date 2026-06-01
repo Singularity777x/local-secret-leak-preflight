@@ -5,10 +5,13 @@ import os
 import re
 import subprocess
 from dataclasses import dataclass
+from fnmatch import fnmatch
 from pathlib import Path
 from typing import Iterable
 
 
+ALLOW_MARKER = "secret-preflight: allow"
+DEFAULT_IGNORE_FILE = ".secret-preflight-ignore"
 SCREENSHOT_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".tiff", ".bmp"}
 SCREENSHOT_NAME = re.compile(
     r"(screen[\s_-]?shot|screen[\s_-]?capture|screencap|clean[\s_-]?shot|capture)",
@@ -246,6 +249,8 @@ def scan_added_lines(lines: Iterable[AddedLine]) -> list[Finding]:
     for added in lines:
         if not added.text.strip():
             continue
+        if ALLOW_MARKER in added.text:
+            continue
         for rule in RULES:
             for match in rule.pattern.finditer(added.text):
                 secret = match.group(1) if match.groups() else match.group(0)
@@ -276,7 +281,45 @@ def scan_added_lines(lines: Iterable[AddedLine]) -> list[Finding]:
     return findings
 
 
-def scan_staged(root: Path | None = None) -> list[Finding]:
+def load_ignore_patterns(root: Path, ignore_file: str | None = DEFAULT_IGNORE_FILE) -> list[str]:
+    if not ignore_file:
+        return []
+    path = root / ignore_file
+    if not path.exists():
+        return []
+    patterns: list[str] = []
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        patterns.append(line)
+    return patterns
+
+
+def is_ignored(finding: Finding, patterns: Iterable[str]) -> bool:
+    candidates = [
+        finding.path,
+        f"{finding.path}:{finding.rule}",
+    ]
+    if finding.line is not None:
+        candidates.extend(
+            [
+                f"{finding.path}:{finding.line}",
+                f"{finding.path}:{finding.line}:{finding.rule}",
+            ]
+        )
+    return any(fnmatch(candidate, pattern) for pattern in patterns for candidate in candidates)
+
+
+def filter_ignored(findings: Iterable[Finding], patterns: Iterable[str]) -> list[Finding]:
+    loaded_patterns = list(patterns)
+    if not loaded_patterns:
+        return list(findings)
+    return [finding for finding in findings if not is_ignored(finding, loaded_patterns)]
+
+
+def scan_staged(root: Path | None = None, ignore_file: str | None = DEFAULT_IGNORE_FILE) -> list[Finding]:
     repo_root = root or git_root()
     paths = staged_paths(repo_root)
-    return scan_paths(paths) + scan_added_lines(staged_added_lines(repo_root, paths))
+    findings = scan_paths(paths) + scan_added_lines(staged_added_lines(repo_root, paths))
+    return filter_ignored(findings, load_ignore_patterns(repo_root, ignore_file))

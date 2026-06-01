@@ -43,6 +43,37 @@ Secret preflight blocked this commit:
 Remove the secret, unstage the file, or commit a safe example instead.
 ```
 
+## Intentional Examples
+
+Prefer placeholder values such as `your_api_key_here`, `redacted`, or `example`. For rare cases where you need to commit a synthetic token that intentionally matches a detector, add an inline allow marker:
+
+```python
+API_KEY = "AbCdEfGhIjKlMnOpQrStUvWxYz123456"  # secret-preflight: allow
+```
+
+You can also commit a `.secret-preflight-ignore` file. Each non-empty, non-comment line is a glob pattern matched against:
+
+```text
+path
+path:rule
+path:line
+path:line:rule
+```
+
+Examples:
+
+```text
+tests/fixtures/*
+docs/*.png:screenshot
+examples/app.py:12:secret-assignment
+```
+
+Disable ignore-file loading for a one-off scan:
+
+```bash
+secret-preflight --ignore-file ""
+```
+
 ## Pre-commit Hook
 
 ```bash

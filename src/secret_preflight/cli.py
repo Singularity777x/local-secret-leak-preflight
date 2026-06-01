@@ -20,6 +20,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="scan",
         help="Command to run. Defaults to scan.",
     )
+    parser.add_argument(
+        "--ignore-file",
+        default=".secret-preflight-ignore",
+        help="Repository-relative ignore file. Use an empty value to disable ignores.",
+    )
     return parser
 
 
@@ -55,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Installed pre-commit hook at {root / '.git' / 'hooks' / 'pre-commit'}")
             return 0
 
-        findings = scan_staged(root)
+        findings = scan_staged(root, ignore_file=args.ignore_file or None)
     except RuntimeError as exc:
         print(f"secret-preflight: {exc}", file=sys.stderr)
         return 2
