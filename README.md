@@ -74,6 +74,32 @@ Disable ignore-file loading for a one-off scan:
 secret-preflight --ignore-file ""
 ```
 
+## JSON Output
+
+Use JSON output for CI, editor integrations, or custom scripts:
+
+```bash
+secret-preflight --format json
+```
+
+Example blocked payload:
+
+```json
+{
+  "finding_count": 1,
+  "findings": [
+    {
+      "line": 12,
+      "message": "High-entropy secret-like assignment is staged.",
+      "path": "app.py",
+      "rule": "secret-assignment",
+      "severity": "high"
+    }
+  ],
+  "ok": false
+}
+```
+
 ## Pre-commit Hook
 
 ```bash

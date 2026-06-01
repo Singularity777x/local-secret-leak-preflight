@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -107,3 +108,32 @@ def test_cli_can_disable_ignore_file(tmp_path, monkeypatch, capsys):
 
     assert main(["--ignore-file", ""]) == 1
     assert "secret-assignment" in capsys.readouterr().err
+
+
+def test_cli_json_output_for_findings(tmp_path, monkeypatch, capsys):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "app.py", 'API_KEY = "AbCdEfGhIjKlMnOpQrStUvWxYz123456"\n')
+    monkeypatch.chdir(repo)
+
+    assert main(["--format", "json"]) == 1
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert captured.err == ""
+    assert payload["ok"] is False
+    assert payload["finding_count"] == 1
+    assert payload["findings"][0]["path"] == "app.py"
+    assert payload["findings"][0]["line"] == 1
+    assert payload["findings"][0]["rule"] == "secret-assignment"
+    assert payload["findings"][0]["severity"] == "high"
+
+
+def test_cli_json_output_for_clean_scan(tmp_path, monkeypatch, capsys):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "notes.txt", "hello\n")
+    monkeypatch.chdir(repo)
+
+    assert main(["--format", "json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload == {"finding_count": 0, "findings": [], "ok": True}

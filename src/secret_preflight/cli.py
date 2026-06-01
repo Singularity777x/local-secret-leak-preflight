@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import stat
 import sys
 from pathlib import Path
@@ -25,6 +26,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=".secret-preflight-ignore",
         help="Repository-relative ignore file. Use an empty value to disable ignores.",
     )
+    parser.add_argument(
+        "--format",
+        choices=["text", "json"],
+        default="text",
+        help="Output format. Defaults to text.",
+    )
     return parser
 
 
@@ -35,6 +42,27 @@ def format_findings(findings: list[Finding]) -> str:
     lines.append("")
     lines.append("Remove the secret, unstage the file, or commit a safe example instead.")
     return "\n".join(lines)
+
+
+def findings_payload(findings: list[Finding]) -> dict[str, object]:
+    return {
+        "ok": not findings,
+        "finding_count": len(findings),
+        "findings": [
+            {
+                "path": finding.path,
+                "line": finding.line,
+                "rule": finding.rule,
+                "severity": finding.severity,
+                "message": finding.message,
+            }
+            for finding in findings
+        ],
+    }
+
+
+def print_json(findings: list[Finding]) -> None:
+    print(json.dumps(findings_payload(findings), indent=2, sort_keys=True))
 
 
 def install_hook(root: Path) -> None:
@@ -68,11 +96,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"secret-preflight: {exc}", file=sys.stderr)
         return 2
 
-    if findings:
+    if args.format == "json":
+        print_json(findings)
+    elif findings:
         print(format_findings(findings), file=sys.stderr)
+    else:
+        print("Secret preflight passed: no staged leaks found.")
+
+    if findings:
         return 1
 
-    print("Secret preflight passed: no staged leaks found.")
     return 0
 
 
