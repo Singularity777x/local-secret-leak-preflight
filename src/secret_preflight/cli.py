@@ -6,6 +6,7 @@ import stat
 import sys
 from pathlib import Path
 
+from secret_preflight import __version__
 from secret_preflight.scanner import Finding, git_root, scan_staged
 
 
@@ -36,6 +37,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--quiet",
         action="store_true",
         help="Suppress scan output and only return an exit code.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     return parser
 

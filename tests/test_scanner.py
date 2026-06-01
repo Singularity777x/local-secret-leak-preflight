@@ -122,6 +122,17 @@ def test_quiet_finding_only_returns_status(tmp_path, monkeypatch, capsys):
     assert captured.err == ""
 
 
+def test_version_output_does_not_require_git_repo(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+
+    try:
+        main(["--version"])
+    except SystemExit as exc:
+        assert exc.code == 0
+
+    assert capsys.readouterr().out.startswith("secret-preflight ")
+
+
 def test_inline_allow_marker_suppresses_line_finding(tmp_path):
     repo = init_repo(tmp_path)
     stage_file(
