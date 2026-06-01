@@ -32,6 +32,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="text",
         help="Output format. Defaults to text.",
     )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress scan output and only return an exit code.",
+    )
     return parser
 
 
@@ -152,7 +157,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"secret-preflight: {exc}", file=sys.stderr)
         return 2
 
-    if args.format == "json":
+    if args.quiet:
+        pass
+    elif args.format == "json":
         print_json(findings)
     elif args.format == "sarif":
         print_sarif(findings)

@@ -100,6 +100,28 @@ def test_clean_staged_file_passes(tmp_path, monkeypatch, capsys):
     assert "passed" in capsys.readouterr().out
 
 
+def test_quiet_clean_scan_only_returns_status(tmp_path, monkeypatch, capsys):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "notes.txt", "hello\n")
+    monkeypatch.chdir(repo)
+
+    assert main(["--quiet"]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+def test_quiet_finding_only_returns_status(tmp_path, monkeypatch, capsys):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "app.py", 'API_KEY = "AbCdEfGhIjKlMnOpQrStUvWxYz123456"\n')
+    monkeypatch.chdir(repo)
+
+    assert main(["--quiet"]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
 def test_inline_allow_marker_suppresses_line_finding(tmp_path):
     repo = init_repo(tmp_path)
     stage_file(

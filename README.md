@@ -46,6 +46,12 @@ Secret preflight blocked this commit:
 Remove the secret, unstage the file, or commit a safe example instead.
 ```
 
+For scripts that only need an exit code:
+
+```bash
+secret-preflight --quiet
+```
+
 ## Intentional Examples
 
 Prefer placeholder values such as `your_api_key_here`, `redacted`, or `example`. For rare cases where you need to commit a synthetic token that intentionally matches a detector, add an inline allow marker:
