@@ -28,7 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--format",
-        choices=["text", "json"],
+        choices=["text", "json", "sarif"],
         default="text",
         help="Output format. Defaults to text.",
     )
@@ -65,6 +65,62 @@ def print_json(findings: list[Finding]) -> None:
     print(json.dumps(findings_payload(findings), indent=2, sort_keys=True))
 
 
+def sarif_level(severity: str) -> str:
+    if severity == "high":
+        return "error"
+    if severity == "medium":
+        return "warning"
+    return "note"
+
+
+def sarif_payload(findings: list[Finding]) -> dict[str, object]:
+    rules = {
+        finding.rule: {
+            "id": finding.rule,
+            "name": finding.rule,
+            "shortDescription": {"text": finding.message},
+            "defaultConfiguration": {"level": sarif_level(finding.severity)},
+        }
+        for finding in findings
+    }
+    results = []
+    for finding in findings:
+        physical_location: dict[str, object] = {
+            "artifactLocation": {"uri": finding.path},
+        }
+        if finding.line is not None:
+            physical_location["region"] = {"startLine": finding.line}
+        results.append(
+            {
+                "ruleId": finding.rule,
+                "level": sarif_level(finding.severity),
+                "message": {"text": finding.message},
+                "locations": [{"physicalLocation": physical_location}],
+            }
+        )
+
+    return {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "Local Secret Leak Preflight",
+                        "informationUri": "https://github.com/Singularity777x/local-secret-leak-preflight",
+                        "rules": list(rules.values()),
+                    }
+                },
+                "results": results,
+            }
+        ],
+    }
+
+
+def print_sarif(findings: list[Finding]) -> None:
+    print(json.dumps(sarif_payload(findings), indent=2, sort_keys=True))
+
+
 def install_hook(root: Path) -> None:
     hooks_dir = root / ".git" / "hooks"
     hooks_dir.mkdir(parents=True, exist_ok=True)
@@ -98,6 +154,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.format == "json":
         print_json(findings)
+    elif args.format == "sarif":
+        print_sarif(findings)
     elif findings:
         print(format_findings(findings), file=sys.stderr)
     else:

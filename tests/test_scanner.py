@@ -137,3 +137,34 @@ def test_cli_json_output_for_clean_scan(tmp_path, monkeypatch, capsys):
     payload = json.loads(capsys.readouterr().out)
 
     assert payload == {"finding_count": 0, "findings": [], "ok": True}
+
+
+def test_cli_sarif_output_for_findings(tmp_path, monkeypatch, capsys):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "app.py", 'API_KEY = "AbCdEfGhIjKlMnOpQrStUvWxYz123456"\n')
+    monkeypatch.chdir(repo)
+
+    assert main(["--format", "sarif"]) == 1
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    result = payload["runs"][0]["results"][0]
+
+    assert captured.err == ""
+    assert payload["version"] == "2.1.0"
+    assert payload["runs"][0]["tool"]["driver"]["name"] == "Local Secret Leak Preflight"
+    assert result["ruleId"] == "secret-assignment"
+    assert result["level"] == "error"
+    assert result["locations"][0]["physicalLocation"]["artifactLocation"]["uri"] == "app.py"
+    assert result["locations"][0]["physicalLocation"]["region"]["startLine"] == 1
+
+
+def test_cli_sarif_output_for_clean_scan(tmp_path, monkeypatch, capsys):
+    repo = init_repo(tmp_path)
+    stage_file(repo, "notes.txt", "hello\n")
+    monkeypatch.chdir(repo)
+
+    assert main(["--format", "sarif"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["version"] == "2.1.0"
+    assert payload["runs"][0]["results"] == []

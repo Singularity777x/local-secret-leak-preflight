@@ -100,6 +100,16 @@ Example blocked payload:
 }
 ```
 
+## SARIF Output
+
+Use SARIF output when you want GitHub-compatible security annotations:
+
+```bash
+secret-preflight --format sarif > secret-preflight.sarif
+```
+
+The command still exits `1` when findings are present, so in GitHub Actions you can upload the SARIF file from an `if: always()` step after the scan.
+
 ## Pre-commit Hook
 
 ```bash
@@ -113,7 +123,7 @@ If you use the `pre-commit` framework, add this to `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/Singularity777x/local-secret-leak-preflight
-    rev: v0.1.0
+    rev: v0.1.3
     hooks:
       - id: secret-preflight
 ```
