@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "local-secret-leak-preflight"
-version = "0.1.8"
+version = "0.1.9"
 description = "A tiny pre-commit and CLI scanner for staged secret leaks."
 readme = "README.md"
 requires-python = ">=3.10"
