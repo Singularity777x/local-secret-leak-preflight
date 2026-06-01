@@ -1,5 +1,7 @@
 # Local Secret Leak Preflight
 
+[![CI](https://github.com/Singularity777x/local-secret-leak-preflight/actions/workflows/ci.yml/badge.svg)](https://github.com/Singularity777x/local-secret-leak-preflight/actions/workflows/ci.yml)
+
 A tiny pre-commit and CLI tool that scans staged Git changes for common secret leaks before they reach GitHub.
 
 It is intentionally small and dependency-light: install it, stage your changes, and run `secret-preflight`.
@@ -22,7 +24,8 @@ python -m pip install git+https://github.com/Singularity777x/local-secret-leak-p
 For local development:
 
 ```bash
-python -m pip install -e .
+python -m pip install -e ".[dev]"
+python -m pytest
 ```
 
 ## Usage
