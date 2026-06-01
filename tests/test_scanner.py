@@ -38,6 +38,25 @@ def test_blocks_secret_assignment(tmp_path, monkeypatch):
     assert findings[0].location() == "app.py:1"
 
 
+def test_blocks_ai_provider_keys(tmp_path):
+    repo = init_repo(tmp_path)
+    stage_file(
+        repo,
+        "config.txt",
+        "\n".join(
+            [
+                "OPENAI_API_KEY=sk-proj-AbCdEfGhIjKlMnOpQrStUvWxYz1234567890",
+                "ANTHROPIC_API_KEY=sk-ant-AbCdEfGhIjKlMnOpQrStUvWxYz1234567890",
+                "",
+            ]
+        ),
+    )
+
+    findings = scan_staged(repo)
+
+    assert {finding.rule for finding in findings} >= {"openai-api-key", "anthropic-api-key"}
+
+
 def test_blocks_env_file_and_jwt(tmp_path, monkeypatch, capsys):
     repo = init_repo(tmp_path)
     stage_file(

@@ -9,7 +9,7 @@ It is intentionally small and dependency-light: install it, stage your changes, 
 ## What It Catches
 
 - API key, token, password, and secret assignments with high-entropy values
-- Common provider tokens, including GitHub, AWS, Stripe, Slack, and Google API keys
+- Common provider tokens, including OpenAI, Anthropic, GitHub, AWS, Stripe, Slack, and Google API keys
 - JWT-like tokens
 - Private key headers and staged key material files such as `.pem`, `.key`, `.p12`, and `.pfx`
 - Real `.env` files while allowing `.env.example`, `.env.sample`, and `.env.template`

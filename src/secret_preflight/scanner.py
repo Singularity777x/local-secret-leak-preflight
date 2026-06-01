@@ -124,6 +124,16 @@ RULES = [
         "GitHub token is staged.",
     ),
     Rule(
+        "openai-api-key",
+        re.compile(r"\bsk-(?:proj-|user-)?[A-Za-z0-9_-]{20,}\b"),
+        "OpenAI API key is staged.",
+    ),
+    Rule(
+        "anthropic-api-key",
+        re.compile(r"\bsk-ant-[A-Za-z0-9_-]{20,}\b"),
+        "Anthropic API key is staged.",
+    ),
+    Rule(
         "stripe-secret-key",
         re.compile(r"\bsk_(?:live|test)_[A-Za-z0-9]{16,}\b"),
         "Stripe secret key is staged.",
